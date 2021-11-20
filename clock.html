@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        html , body{
+            width:100%;
+            height:100%;
+        }
+        .box{
+            position: relative;
+            top:50%;
+            transform:translateY(-50%);
+            width: 100%;
+            height: 400px;
+            background: #ccc;
+        }
+        /* search */
+        .search{
+            height: 52px;
+            line-height: 52px;
+            margin: 0 auto;
+        }
+        .search #ipt{
+            border-color: #6969c7;
+            border-radius: 2px;
+            border: 1px solid;
+            height: 24px;
+            width: 200px;
+        }
+        .search .searchBtns{
+            height: 28px;
+            border: 1px solid;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        /* geci */
+        /* //给整个外层父级div设置宽度并居中 */
+        .container{
+            width: 500px;
+            margin: 0 auto;
+        }
+        /* //改变audio的display属性，将其宽度设置与父级相同 */
+        .container audio{
+            display: block;
+            width: 100%;
+        }
+        .container audio:focus{
+            outline: none;
+        }
+        /* //歌词结构设置高度颜色自己溢出隐藏属性 */
+        .lrc{
+            height: 450px;
+            margin-top: 30px;
+            color: #888;
+            overflow: hidden;
+        }
+        .lrc ul{
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            text-align: center;
+            transition: 0.3s;
+        }
+        .lrc ul li{
+            height: 35px;
+            line-height: 35px;
+            transition: 0.3s;
+        }
+        .lrc ul li.active{
+            color: #000;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="search">
+        <input type="text" id='ipt'>
+        <button id='searchBtn' class="searchBtns">search</button>
+    </div>
+    <div class="box">
+        <div>
+            <div>
+                <button id="btn">开始</button>
+                <button id="stop">暂停</button>
+            </div>
+            <div>
+                <audio src="./删了吧.mp3" id="audio"></audio>
+            </div>
+        </div>
+        <div>
+            <h4 id="timer"></h4>
+        </div>
+        <!-- geci -->
+        <div class="container">
+            <div class="lrc">
+                <ul id="ullrc"></ul>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        // import lyric from './lyric.js';
+        import req  from './request.js'
+        // spypluto.top/api/lyric?id=1891469546
+        var lrc = ''
+ 
+        let allCount = 10
+        let aidio = document.getElementById('audio')
+        let btn = document.getElementById('btn')
+        let stop = document.getElementById('stop')
+        var ul = document.getElementById("ullrc");
+        var ipt = document.getElementById('ipt')
+        var searchBtn = document.getElementById('searchBtn')
+        function idToLyic(id){
+            req.request(`http://www.spypluto.top/api/lyric?id=${id}`,(res=>{ //获取歌词
+                lrc = res.lrc.lyric
+            }))
+        }
+        idToLyic(1891469546)
+        btn.addEventListener("click", function(){
+            aidio.play()
+            statrLyc()
+            // StartAlarm()
+        });
+        stop.addEventListener("click", function(){
+            aidio.pause()
+            // StopAlarm()
+        });
+        function Clock(){
+            setCountDown()
+        }
+        function StartAlarm(){
+            allCount --
+            refshCount(allCount)
+            aidio.load()
+            aidio.play()
+        }
+        function StopAlarm(){
+            aidio.pause()
+        }
+        // 倒计时代码
+        function setCountDown(){
+
+            var maxtime = 30*60 //一个小时，按秒计算，自己调整! 
+            // var maxtime =60*60  //一个小时，按秒计算，自己调整! 
+
+            var timer = setInterval(()=>{
+                if(maxtime>=0){ 
+                var minutes = Math.floor(maxtime/60); 
+                var seconds = Math.floor(maxtime%60); 
+                var msg = "距离结束还有"+minutes+"分"+seconds+"秒"; 
+                document.all["timer"].innerHTML=msg; 
+                if(maxtime == 5*60) ; 
+                --maxtime; 
+                } 
+                else{ 
+                clearInterval(timer); 
+                    StartAlarm() //时间到!
+                } 
+            },1000); 
+        }
+        refshCount(allCount)
+        function refshCount(index){
+            if(index !== 0){
+                Clock()
+            }else{
+                console.log('over')
+            }
+        }
+        // 歌词代码 ---- 1111 ------  }}]sdw-------------------------------------------------------------------------------歌词代码//
+    function statrLyc(){
+
+        function getLrcArray() {
+            var parts = lrc.split("\n");
+            for(var i = 0; i < parts.length; i ++) {
+                parts[i] = getLrcObj(parts[i]);
+            }
+            return parts;
+
+            function getLrcObj(content) {
+                var twoParts = content.split("]");
+                var time = twoParts[0].substr(1);
+                var timeParts = time.split(":");
+                var minute = +timeParts[0];
+                var seconds = +timeParts[1];
+                time = minute * 60 + seconds;
+                var words = twoParts[1];
+
+                return {
+                    time: time,
+                    words: words,
+                };
+            }
+        }
+
+        var lrcArray = getLrcArray();
+
+        //按照歌词的行数(数组长度)批量创建li标签，将li标签插入ul标签下
+        function createLis() {
+            for(var i = 0; i < lrcArray.length; i ++) {
+                var li = document.createElement("li");
+                li.innerText = lrcArray[i].words;
+                ul.appendChild(li);
+            }
+        }
+
+        createLis();
+
+        //利用audio标签的currentTime属性拖动时间
+        //比较当前时间和数组中的时间，若当前时间小于数组时间则返回i-1，循环执行此过程，确保能够使时间匹配
+        function getLrcIndex() {
+            var time = audio.currentTime;
+            for(var i = 0; i < lrcArray.length; i ++) {
+                if(time < lrcArray[i].time) {
+                    return i - 1;
+                }
+            }
+        }
+
+        /**
+         * 获取当前数组位置，若当前i=-1则跳出执行，若i不等于-1则向下执行
+         * 歌词顶端的上边距的计算方法为数组下标*行高+行高/2-父级div/2
+         * 通过queryselector方法选择类名为".active"的标签，有则返回字树中的第一个元素，没有则返回null
+         * 通过返回值进行判断，若有则将其置为空，返回值为null则代码向下执行，将对应数组下标的li标签赋予"active"类名
+         * 使用audio的ontimeupdate方法，将setPosition函数进行触发，定义音频当前的播放位置
+         */
+        function setPosition() {
+            var i = getLrcIndex();
+            if(i === -1) {
+                return;
+            }
+            var top = i * 35 + 35/2 - 450/2;
+            ul.style.marginTop = -top + "px";
+            if(top < 0) {
+                top = 0;
+            }
+            var acLi = ul.querySelector(".active");
+            if(acLi) {
+                acLi.className = "";
+            }
+            ul.children[i].className = "active";
+        }
+
+        aidio.ontimeupdate = setPosition;
+    }
+    // ----------------------------------------------------------------------------搜索代码------------------------//
+    searchBtn.addEventListener("mouseover", function(){
+        console.log(1111)
+        console.log(ipt,1111)
+        req.request(`http://www.spypluto.top/api/search?keywords=${value}`,(res=>{ //获取歌词
+            lrc = res.lrc.lyric
+            // idToLyic()
+        }))
+    },true)
+
+    </script>
+</body>
+</html>
