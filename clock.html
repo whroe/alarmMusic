@@ -9,14 +9,18 @@
         html , body{
             width:100%;
             height:100%;
+            overflow: hidden;
         }
         .box{
+            display: flex;
             position: relative;
-            top:50%;
+            top:58%;
             transform:translateY(-50%);
             width: 100%;
-            height: 400px;
+            height: 500px;
             background: #ccc;
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
         }
         /* search */
         .search{
@@ -75,25 +79,51 @@
             font-size: 1.2em;
             font-weight: bold;
         }
+        /* list */
+        #songList ul{
+            height: 200px;
+            list-style: none;
+            overflow-y: scroll;
+            margin: 0px;
+        }
+        #songList ul li{
+            height: 40px;
+
+        }
+        #songList ul li.active{
+            height: 35px;
+            line-height: 35px;
+            background: #adbfd7;
+            margin: 5px 0;
+            text-align: center;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="search">
-        <input type="text" id='ipt'>
-        <button id='searchBtn' class="searchBtns">search</button>
-    </div>
-    <div class="box">
         <div>
-            <div>
-                <button id="btn">开始</button>
-                <button id="stop">暂停</button>
-            </div>
-            <div>
-                <audio src="./删了吧.mp3" id="audio"></audio>
-            </div>
+            <input type="text" id='ipt'>
+            <button id='searchBtn' class="searchBtns">search</button>
         </div>
-        <div>
-            <h4 id="timer"></h4>
+        <div id="songList">
+            <ul id="List"></ul>
+        </div>
+    </div>
+    <div class="box" id="box">
+        <div class="left">
+            <div>
+                <div>
+                    <button id="btn">开始</button>
+                    <button id="stop">暂停</button>
+                </div>
+                <div>
+                    <audio src="./删了吧.mp3" id="audio"></audio>
+                </div>
+            </div>
+            <div>
+                <h4 id="timer"></h4>
+            </div>
         </div>
         <!-- geci -->
         <div class="container">
@@ -115,12 +145,19 @@
         var ul = document.getElementById("ullrc");
         var ipt = document.getElementById('ipt')
         var searchBtn = document.getElementById('searchBtn')
+        var box = document.getElementById('box')
         function idToLyic(id){
             req.request(`http://www.spypluto.top/api/lyric?id=${id}`,(res=>{ //获取歌词
                 lrc = res.lrc.lyric
             }))
         }
         idToLyic(1891469546)
+        function getMusicUrl(id,success){
+            req.request(`http://www.spypluto.top/api/song/url?id=${id}`,(res=>{ //获取歌词
+                success(res)
+            }))
+            
+        }
         btn.addEventListener("click", function(){
             aidio.play()
             statrLyc()
@@ -201,6 +238,10 @@
 
         //按照歌词的行数(数组长度)批量创建li标签，将li标签插入ul标签下
         function createLis() {
+            var pObjs = ul.childNodes;
+            for (var i = pObjs.length - 1; i >= 0; i--) { // 一定要倒序，正序是删不干净的，可自行尝试
+                ul.removeChild(pObjs[i]);
+            }
             for(var i = 0; i < lrcArray.length; i ++) {
                 var li = document.createElement("li");
                 li.innerText = lrcArray[i].words;
@@ -248,11 +289,39 @@
         aidio.ontimeupdate = setPosition;
     }
     // ----------------------------------------------------------------------------搜索代码------------------------//
-    searchBtn.addEventListener("mouseover", function(){
-        console.log(1111)
-        console.log(ipt,1111)
+    searchBtn.addEventListener("click", function(){
+        var value = ipt.value
         req.request(`http://www.spypluto.top/api/search?keywords=${value}`,(res=>{ //获取歌词
-            lrc = res.lrc.lyric
+            let idList = res.result.songs
+            let uls = document.getElementById('List')
+            var pObjs = uls.childNodes;
+            for (var i = pObjs.length - 1; i >= 0; i--) { // 一定要倒序，正序是删不干净的，可自行尝试
+                uls.removeChild(pObjs[i]);
+            }
+            for(var i = 0; i < idList.length; i ++) {
+                var li = document.createElement("li");
+                li.innerText = idList[i].name;
+                uls.appendChild(li);
+            }
+            uls.onclick = function (e) {
+            　　e = e || window.event; //这一行及下一行是为兼容IE8及以下版本
+            　　var target = e.target || e.srcElement;
+            　　if (target.tagName.toLowerCase() === "li") {
+            　　　　var li = this.querySelectorAll("li");
+            　　　　var index = Array.prototype.indexOf.call(li, target);
+                    var acLi = uls.querySelector(".active");
+                    if(acLi) {
+                        acLi.className = "";
+                    }
+                    uls.children[index].className = 'active'
+            　　}
+                box.style.backgroundImage = `url(${idList[index].album.artist.img1v1Url})`
+                var id = idList[index].id
+                getMusicUrl(id,(res=>{
+                    aidio.src =  res.data[0].url
+                }))
+                idToLyic(id)
+            }
             // idToLyic()
         }))
     },true)
